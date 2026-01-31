@@ -18,6 +18,18 @@ A macOS application that allows you to launch apps from your dock using keyboard
 
 ## Installation
 
+### Build and Run Script (Recommended)
+
+Use the provided build script to compile and automatically launch the app:
+```bash
+./build.sh
+```
+
+This script will:
+- Check for and kill any running instances
+- Compile the app
+- Launch it in the background automatically
+
 ### Quick Build
 
 Compile directly with Swift:
@@ -51,6 +63,14 @@ Before running the app, you need to grant it accessibility permissions:
 ## Usage
 
 1. Run the application:
+   
+   **Using the build script (recommended):**
+   ```bash
+   ./build.sh
+   ```
+   This will build and launch the app automatically in the background.
+   
+   **Or run manually:**
    ```bash
    .build/release/snap
    ```
