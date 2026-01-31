@@ -1,0 +1,31 @@
+{
+  "" : {
+    "const-values" : "/Users/pedroneto/Developer/snap/build/Build/Intermediates.noindex/Snap.build/Release/Snap.build/Objects-normal/arm64/Snap-primary.swiftconstvalues",
+    "dependencies" : "/Users/pedroneto/Developer/snap/build/Build/Intermediates.noindex/Snap.build/Release/Snap.build/Objects-normal/arm64/Snap-primary.d",
+    "diagnostics" : "/Users/pedroneto/Developer/snap/build/Build/Intermediates.noindex/Snap.build/Release/Snap.build/Objects-normal/arm64/Snap-primary.dia",
+    "emit-module-dependencies" : "/Users/pedroneto/Developer/snap/build/Build/Intermediates.noindex/Snap.build/Release/Snap.build/Objects-normal/arm64/Snap-primary-emit-module.d",
+    "emit-module-diagnostics" : "/Users/pedroneto/Developer/snap/build/Build/Intermediates.noindex/Snap.build/Release/Snap.build/Objects-normal/arm64/Snap-primary-emit-module.dia",
+    "pch" : "/Users/pedroneto/Developer/snap/build/Build/Intermediates.noindex/Snap.build/Release/Snap.build/Objects-normal/arm64/Snap-primary-Bridging-header.pch",
+    "swift-dependencies" : "/Users/pedroneto/Developer/snap/build/Build/Intermediates.noindex/Snap.build/Release/Snap.build/Objects-normal/arm64/Snap-primary.swiftdeps"
+  },
+  "/Users/pedroneto/Developer/snap/Snap/ContentView.swift" : {
+    "index-unit-output-path" : "/Snap.build/Release/Snap.build/Objects-normal/arm64/ContentView.o",
+    "llvm-bc" : "/Users/pedroneto/Developer/snap/build/Build/Intermediates.noindex/Snap.build/Release/Snap.build/Objects-normal/arm64/ContentView.bc",
+    "object" : "/Users/pedroneto/Developer/snap/build/Build/Intermediates.noindex/Snap.build/Release/Snap.build/Objects-normal/arm64/ContentView.o"
+  },
+  "/Users/pedroneto/Developer/snap/Snap/Snap.swift" : {
+    "index-unit-output-path" : "/Snap.build/Release/Snap.build/Objects-normal/arm64/Snap.o",
+    "llvm-bc" : "/Users/pedroneto/Developer/snap/build/Build/Intermediates.noindex/Snap.build/Release/Snap.build/Objects-normal/arm64/Snap.bc",
+    "object" : "/Users/pedroneto/Developer/snap/build/Build/Intermediates.noindex/Snap.build/Release/Snap.build/Objects-normal/arm64/Snap.o"
+  },
+  "/Users/pedroneto/Developer/snap/Snap/SnapApp.swift" : {
+    "index-unit-output-path" : "/Snap.build/Release/Snap.build/Objects-normal/arm64/SnapApp.o",
+    "llvm-bc" : "/Users/pedroneto/Developer/snap/build/Build/Intermediates.noindex/Snap.build/Release/Snap.build/Objects-normal/arm64/SnapApp.bc",
+    "object" : "/Users/pedroneto/Developer/snap/build/Build/Intermediates.noindex/Snap.build/Release/Snap.build/Objects-normal/arm64/SnapApp.o"
+  },
+  "/Users/pedroneto/Developer/snap/build/Build/Intermediates.noindex/Snap.build/Release/Snap.build/DerivedSources/GeneratedAssetSymbols.swift" : {
+    "index-unit-output-path" : "/Snap.build/Release/Snap.build/Objects-normal/arm64/GeneratedAssetSymbols.o",
+    "llvm-bc" : "/Users/pedroneto/Developer/snap/build/Build/Intermediates.noindex/Snap.build/Release/Snap.build/Objects-normal/arm64/GeneratedAssetSymbols.bc",
+    "object" : "/Users/pedroneto/Developer/snap/build/Build/Intermediates.noindex/Snap.build/Release/Snap.build/Objects-normal/arm64/GeneratedAssetSymbols.o"
+  }
+}

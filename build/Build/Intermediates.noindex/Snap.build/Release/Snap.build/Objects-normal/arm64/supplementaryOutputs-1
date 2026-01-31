@@ -1,0 +1,12 @@
+{
+  "/Users/pedroneto/Developer/snap/Snap/ContentView.swift" : {
+    "abi-baseline-json" : "/Users/pedroneto/Developer/snap/build/Build/Intermediates.noindex/Snap.build/Release/Snap.build/Objects-normal/arm64/Snap.abi.json",
+    "const-values" : "/Users/pedroneto/Developer/snap/build/Build/Intermediates.noindex/Snap.build/Release/Snap.build/Objects-normal/arm64/Snap-primary.swiftconstvalues",
+    "dependencies" : "/Users/pedroneto/Developer/snap/build/Build/Intermediates.noindex/Snap.build/Release/Snap.build/Objects-normal/arm64/Snap-primary.d",
+    "diagnostics" : "/Users/pedroneto/Developer/snap/build/Build/Intermediates.noindex/Snap.build/Release/Snap.build/Objects-normal/arm64/Snap-primary.dia",
+    "objc-header" : "/Users/pedroneto/Developer/snap/build/Build/Intermediates.noindex/Snap.build/Release/Snap.build/Objects-normal/arm64/Snap-Swift.h",
+    "swiftdoc" : "/Users/pedroneto/Developer/snap/build/Build/Intermediates.noindex/Snap.build/Release/Snap.build/Objects-normal/arm64/Snap.swiftdoc",
+    "swiftmodule" : "/Users/pedroneto/Developer/snap/build/Build/Intermediates.noindex/Snap.build/Release/Snap.build/Objects-normal/arm64/Snap.swiftmodule",
+    "swiftsourceinfo" : "/Users/pedroneto/Developer/snap/build/Build/Intermediates.noindex/Snap.build/Release/Snap.build/Objects-normal/arm64/Snap.swiftsourceinfo"
+  }
+}

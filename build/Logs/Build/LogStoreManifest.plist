@@ -1,0 +1,179 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>logFormatVersion</key>
+	<integer>12</integer>
+	<key>logs</key>
+	<dict>
+		<key>1286CE91-3A66-458C-8E19-433A38841B12</key>
+		<dict>
+			<key>className</key>
+			<string>IDECommandLineBuildLog</string>
+			<key>documentTypeString</key>
+			<string>&lt;nil&gt;</string>
+			<key>domainType</key>
+			<string>Xcode.IDEActivityLogDomainType.BuildLog</string>
+			<key>fileName</key>
+			<string>1286CE91-3A66-458C-8E19-433A38841B12.xcactivitylog</string>
+			<key>hasPrimaryLog</key>
+			<true/>
+			<key>primaryObservable</key>
+			<dict>
+				<key>highLevelStatus</key>
+				<string>S</string>
+				<key>totalNumberOfAnalyzerIssues</key>
+				<integer>0</integer>
+				<key>totalNumberOfErrors</key>
+				<integer>0</integer>
+				<key>totalNumberOfTestFailures</key>
+				<integer>0</integer>
+				<key>totalNumberOfWarnings</key>
+				<integer>0</integer>
+			</dict>
+			<key>schemeIdentifier-containerName</key>
+			<string>Snap project</string>
+			<key>schemeIdentifier-schemeName</key>
+			<string>Snap</string>
+			<key>schemeIdentifier-sharedScheme</key>
+			<integer>1</integer>
+			<key>signature</key>
+			<string>Cleaning project Snap with scheme Snap and configuration Release</string>
+			<key>timeStartedRecording</key>
+			<real>791571395.87795401</real>
+			<key>timeStoppedRecording</key>
+			<real>791571396.13940704</real>
+			<key>title</key>
+			<string>Cleaning project Snap with scheme Snap and configuration Release</string>
+			<key>uniqueIdentifier</key>
+			<string>1286CE91-3A66-458C-8E19-433A38841B12</string>
+		</dict>
+		<key>3567E166-6DFF-4C27-9567-C7961F77CEC4</key>
+		<dict>
+			<key>className</key>
+			<string>IDECommandLineBuildLog</string>
+			<key>documentTypeString</key>
+			<string>&lt;nil&gt;</string>
+			<key>domainType</key>
+			<string>Xcode.IDEActivityLogDomainType.BuildLog</string>
+			<key>fileName</key>
+			<string>3567E166-6DFF-4C27-9567-C7961F77CEC4.xcactivitylog</string>
+			<key>hasPrimaryLog</key>
+			<true/>
+			<key>primaryObservable</key>
+			<dict>
+				<key>highLevelStatus</key>
+				<string>S</string>
+				<key>totalNumberOfAnalyzerIssues</key>
+				<integer>0</integer>
+				<key>totalNumberOfErrors</key>
+				<integer>0</integer>
+				<key>totalNumberOfTestFailures</key>
+				<integer>0</integer>
+				<key>totalNumberOfWarnings</key>
+				<integer>0</integer>
+			</dict>
+			<key>schemeIdentifier-containerName</key>
+			<string>Snap project</string>
+			<key>schemeIdentifier-schemeName</key>
+			<string>Snap</string>
+			<key>schemeIdentifier-sharedScheme</key>
+			<integer>1</integer>
+			<key>signature</key>
+			<string>Cleaning project Snap with scheme Snap and configuration Release</string>
+			<key>timeStartedRecording</key>
+			<real>791571661.21102703</real>
+			<key>timeStoppedRecording</key>
+			<real>791571661.52536798</real>
+			<key>title</key>
+			<string>Cleaning project Snap with scheme Snap and configuration Release</string>
+			<key>uniqueIdentifier</key>
+			<string>3567E166-6DFF-4C27-9567-C7961F77CEC4</string>
+		</dict>
+		<key>879C43BD-D86B-4B88-BD3C-C448C00739DB</key>
+		<dict>
+			<key>className</key>
+			<string>IDECommandLineBuildLog</string>
+			<key>documentTypeString</key>
+			<string>&lt;nil&gt;</string>
+			<key>domainType</key>
+			<string>Xcode.IDEActivityLogDomainType.BuildLog</string>
+			<key>fileName</key>
+			<string>879C43BD-D86B-4B88-BD3C-C448C00739DB.xcactivitylog</string>
+			<key>hasPrimaryLog</key>
+			<true/>
+			<key>primaryObservable</key>
+			<dict>
+				<key>highLevelStatus</key>
+				<string>S</string>
+				<key>totalNumberOfAnalyzerIssues</key>
+				<integer>0</integer>
+				<key>totalNumberOfErrors</key>
+				<integer>0</integer>
+				<key>totalNumberOfTestFailures</key>
+				<integer>0</integer>
+				<key>totalNumberOfWarnings</key>
+				<integer>0</integer>
+			</dict>
+			<key>schemeIdentifier-containerName</key>
+			<string>Snap project</string>
+			<key>schemeIdentifier-schemeName</key>
+			<string>Snap</string>
+			<key>schemeIdentifier-sharedScheme</key>
+			<integer>1</integer>
+			<key>signature</key>
+			<string>Cleaning project Snap with scheme Snap and configuration Release</string>
+			<key>timeStartedRecording</key>
+			<real>791571736.74334896</real>
+			<key>timeStoppedRecording</key>
+			<real>791571736.98801005</real>
+			<key>title</key>
+			<string>Cleaning project Snap with scheme Snap and configuration Release</string>
+			<key>uniqueIdentifier</key>
+			<string>879C43BD-D86B-4B88-BD3C-C448C00739DB</string>
+		</dict>
+		<key>F7079765-BCA4-4C63-BD9E-31C9ECC2BE8C</key>
+		<dict>
+			<key>className</key>
+			<string>IDECommandLineBuildLog</string>
+			<key>documentTypeString</key>
+			<string>&lt;nil&gt;</string>
+			<key>domainType</key>
+			<string>Xcode.IDEActivityLogDomainType.BuildLog</string>
+			<key>fileName</key>
+			<string>F7079765-BCA4-4C63-BD9E-31C9ECC2BE8C.xcactivitylog</string>
+			<key>hasPrimaryLog</key>
+			<true/>
+			<key>primaryObservable</key>
+			<dict>
+				<key>highLevelStatus</key>
+				<string>S</string>
+				<key>totalNumberOfAnalyzerIssues</key>
+				<integer>0</integer>
+				<key>totalNumberOfErrors</key>
+				<integer>0</integer>
+				<key>totalNumberOfTestFailures</key>
+				<integer>0</integer>
+				<key>totalNumberOfWarnings</key>
+				<integer>0</integer>
+			</dict>
+			<key>schemeIdentifier-containerName</key>
+			<string>Snap project</string>
+			<key>schemeIdentifier-schemeName</key>
+			<string>Snap</string>
+			<key>schemeIdentifier-sharedScheme</key>
+			<integer>1</integer>
+			<key>signature</key>
+			<string>Cleaning project Snap with scheme Snap and configuration Release</string>
+			<key>timeStartedRecording</key>
+			<real>791571773.33053994</real>
+			<key>timeStoppedRecording</key>
+			<real>791571773.66804004</real>
+			<key>title</key>
+			<string>Cleaning project Snap with scheme Snap and configuration Release</string>
+			<key>uniqueIdentifier</key>
+			<string>F7079765-BCA4-4C63-BD9E-31C9ECC2BE8C</string>
+		</dict>
+	</dict>
+</dict>
+</plist>
