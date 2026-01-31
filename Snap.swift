@@ -8,9 +8,20 @@ class SnapApp: NSObject {
     private var hotkeyCallbacks: [Int: () -> Void] = [:]
     private var hotkeyCount = 0
     
-    // Cancellation mechanism for rapid key presses
-    private var pendingLaunchWork: DispatchWorkItem?
-    private let launchQueue = DispatchQueue(label: "com.snap.launch", qos: .userInitiated)
+    // Pre-computed app URLs and bundle IDs for maximum speed
+    private var appURLs: [Int: URL] = [:]
+    private var appBundleIDs: [Int: String] = [:]
+    private var runningAppRefs: [Int: NSRunningApplication] = [:]
+    
+    // Cached workspace reference (avoid repeated access)
+    private let workspace = NSWorkspace.shared
+    
+    // Cancellation mechanism - optimized for speed
+    private var lastLaunchTime: UInt64 = 0
+    private var pendingPosition: Int? = nil
+    
+    // Dedicated high-priority queue for launches
+    private let launchQueue = DispatchQueue(label: "com.snap.launch", qos: .userInteractive, attributes: [])
     
     override init() {
         super.init()
@@ -35,15 +46,13 @@ class SnapApp: NSObject {
         }
     }
     
+    @inline(__always)
     private func handleHotkeyEvent(_ event: EventRef?) -> OSStatus {
         guard let event = event else { return OSStatus(eventNotHandledErr) }
         var hotkeyID = EventHotKeyID()
         let err = GetEventParameter(event, EventParamName(kEventParamDirectObject), EventParamType(typeEventHotKeyID), nil, MemoryLayout<EventHotKeyID>.size, nil, &hotkeyID)
         
-        guard err == noErr else {
-            print("Error getting hotkey ID: \(err)")
-            return err
-        }
+        guard err == noErr else { return err }
         
         let position = Int(hotkeyID.id)
         print("🔥 Hotkey pressed: Ctrl+\(position)")
@@ -52,6 +61,7 @@ class SnapApp: NSObject {
         return noErr
     }
     
+    @inline(__always)
     func registerHotkey(keyCode: UInt32, modifiers: UInt32, position: Int) -> Bool {
         guard hotkeyCount < 9 else { return false }
         
@@ -132,16 +142,43 @@ class SnapApp: NSObject {
             let filteredApps = apps.filter { $0 != "Finder" }
             
             appPositions.removeAll()
-            for (index, app) in filteredApps.enumerated() {
-                if index >= 9 { break }
-                appPositions[index + 1] = app
-            }
+            appURLs.removeAll()
+            appBundleIDs.removeAll()
+            runningAppRefs.removeAll()
+            
+            let runningApps = workspace.runningApplications
             
             print("\n📌 Current dock mapping:")
-            for i in 1...9 {
-                if let app = appPositions[i] {
-                    print("  Ctrl+\(i) → \(app)")
+            for (index, app) in filteredApps.enumerated() {
+                if index >= 9 { break }
+                let position = index + 1
+                appPositions[position] = app
+                
+                // Pre-compute app URL for maximum speed
+                let commonPaths = [
+                    "/Applications/\(app).app",
+                    "/System/Applications/\(app).app",
+                    "/System/Applications/Utilities/\(app).app"
+                ]
+                
+                var foundURL = false
+                for path in commonPaths {
+                    if FileManager.default.fileExists(atPath: path) {
+                        appURLs[position] = URL(fileURLWithPath: path)
+                        foundURL = true
+                        break
+                    }
                 }
+                
+                // Pre-compute bundle ID and running app reference if available
+                var status = foundURL ? "📦" : "⚠️"
+                if let runningApp = runningApps.first(where: { $0.localizedName == app }) {
+                    appBundleIDs[position] = runningApp.bundleIdentifier
+                    runningAppRefs[position] = runningApp
+                    status = "✅"
+                }
+                
+                print("  \(status) Ctrl+\(position) → \(app)")
             }
             print()
             
@@ -150,68 +187,59 @@ class SnapApp: NSObject {
         }
     }
     
+    @inline(__always)
     func launchAppAtPosition(_ position: Int) {
         guard let appName = appPositions[position] else {
             print("❌ No app at position \(position)")
             return
         }
         
-        // Cancel any pending launch work
-        pendingLaunchWork?.cancel()
-        
-        // Create new work item for this launch
-        var workItem: DispatchWorkItem!
-        workItem = DispatchWorkItem {
-            guard !workItem.isCancelled else { return }
-            
-            // Use NSWorkspace for much faster app launching (no AppleScript overhead)
-            let workspace = NSWorkspace.shared
-            
-            // First, check if the app is already running - this is instant
-            let runningApps = workspace.runningApplications
-            if let runningApp = runningApps.first(where: { $0.localizedName == appName }) {
-                // App is already running, just activate it (very fast)
+        // Ultra-fast path 1: Direct reference to running app (fastest - no lookup needed)
+        if let runningApp = runningAppRefs[position] {
+            if !runningApp.isTerminated {
+                print("✅ Activating: \(appName)")
                 runningApp.activate()
                 return
+            } else {
+                // App terminated, remove from cache
+                print("⚠️ App \(appName) terminated, removing from cache")
+                runningAppRefs.removeValue(forKey: position)
             }
+        }
+        
+        // Ultra-fast path 2: Pre-computed URL (instant launch)
+        if let url = appURLs[position] {
+            print("🚀 Launching: \(appName)")
+            let currentTime = mach_absolute_time()
+            lastLaunchTime = currentTime
+            pendingPosition = position
             
-            // App is not running, find and launch it
-            // Try common locations first (fastest path - no searching needed)
-            let commonPaths = [
-                "/Applications/\(appName).app",
-                "/System/Applications/\(appName).app",
-                "/System/Applications/Utilities/\(appName).app"
-            ]
-            
-            for path in commonPaths {
-                if FileManager.default.fileExists(atPath: path) {
-                    let url = URL(fileURLWithPath: path)
-                    let config = NSWorkspace.OpenConfiguration()
-                    config.activates = true
-                    // Fire and forget - don't wait for completion (faster)
-                    workspace.openApplication(at: url, configuration: config, completionHandler: nil)
+            // Use dedicated high-priority queue, minimal delay (3ms for cancellation)
+            launchQueue.asyncAfter(deadline: .now() + 0.003) { [weak self] in
+                guard let self = self else { return }
+                guard self.pendingPosition == position, self.lastLaunchTime == currentTime else {
+                    print("⏭️ Launch cancelled for: \(appName)")
                     return
                 }
-            }
-            
-            // Fallback: try to find app by bundle identifier
-            if let appURL = workspace.urlForApplication(withBundleIdentifier: appName) {
+                
                 let config = NSWorkspace.OpenConfiguration()
                 config.activates = true
-                workspace.openApplication(at: appURL, configuration: config, completionHandler: nil)
+                config.createsNewApplicationInstance = false
+                self.workspace.openApplication(at: url, configuration: config, completionHandler: nil)
             }
+            return
         }
         
-        // Store the work item and execute it
-        pendingLaunchWork = workItem
-        
-        // Execute with a small delay to allow cancellation of rapid presses
-        // This ensures only the last press in a rapid sequence executes
-        launchQueue.asyncAfter(deadline: .now() + 0.05) {
-            if !workItem.isCancelled {
-                workItem.perform()
-            }
+        // Fallback: try to find running app by bundle ID (one-time lookup)
+        if let bundleID = appBundleIDs[position],
+           let runningApp = workspace.runningApplications.first(where: { $0.bundleIdentifier == bundleID }) {
+            print("✅ Found and activating: \(appName)")
+            runningAppRefs[position] = runningApp
+            runningApp.activate()
+            return
         }
+        
+        print("❌ Could not launch \(appName) - not found")
     }
     
     func setupHotkeys() {
@@ -271,16 +299,11 @@ class SnapApp: NSObject {
         refreshDockApps()
         setupHotkeys()
         
-        // Refresh dock apps periodically
-        Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { [weak self] _ in
-            self?.refreshDockApps()
-        }
-        
         print("✅ App is running. Press Ctrl+1-9 to launch apps, or Ctrl+C to quit.")
         print("   (Note: If running in Terminal, Control keys may be intercepted by Terminal)")
         
-        // Process Carbon events in the run loop
-        let timer = Timer(timeInterval: 0.1, repeats: true) { _ in
+        // Process Carbon events in the run loop - optimized frequency (50ms instead of 100ms)
+        let timer = Timer(timeInterval: 0.05, repeats: true) { _ in
             var event: EventRef?
             let target = GetEventDispatcherTarget()
             ReceiveNextEvent(0, nil, 0.0, true, &event)
@@ -296,12 +319,16 @@ class SnapApp: NSObject {
     }
 }
 
-// Extension to convert string to FourCharCode
+// Extension to convert string to FourCharCode - optimized
 extension FourCharCode {
+    @inline(__always)
     init(fromString string: String) {
+        let bytes = string.utf8.prefix(4)
         var result: FourCharCode = 0
-        for (index, char) in string.utf8.prefix(4).enumerated() {
-            result |= FourCharCode(char) << (8 * (3 - index))
+        var shift = 24
+        for byte in bytes {
+            result |= FourCharCode(byte) << shift
+            shift -= 8
         }
         self = result
     }
@@ -310,4 +337,5 @@ extension FourCharCode {
 // Main entry point
 let app = SnapApp()
 app.run()
+
 
