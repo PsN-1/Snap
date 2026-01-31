@@ -8,6 +8,10 @@ class SnapApp: NSObject {
     private var hotkeyCallbacks: [Int: () -> Void] = [:]
     private var hotkeyCount = 0
     
+    // Cancellation mechanism for rapid key presses
+    private var pendingLaunchWork: DispatchWorkItem?
+    private let launchQueue = DispatchQueue(label: "com.snap.launch", qos: .userInitiated)
+    
     override init() {
         super.init()
         setupHotkeyHandler()
@@ -152,41 +156,61 @@ class SnapApp: NSObject {
             return
         }
         
-        // Use NSWorkspace for much faster app launching (no AppleScript overhead)
-        let workspace = NSWorkspace.shared
+        // Cancel any pending launch work
+        pendingLaunchWork?.cancel()
         
-        // First, check if the app is already running - this is instant
-        let runningApps = workspace.runningApplications
-        if let runningApp = runningApps.first(where: { $0.localizedName == appName }) {
-            // App is already running, just activate it (very fast)
-            runningApp.activate()
-            return
-        }
-        
-        // App is not running, find and launch it
-        // Try common locations first (fastest path - no searching needed)
-        let commonPaths = [
-            "/Applications/\(appName).app",
-            "/System/Applications/\(appName).app",
-            "/System/Applications/Utilities/\(appName).app"
-        ]
-        
-        for path in commonPaths {
-            if FileManager.default.fileExists(atPath: path) {
-                let url = URL(fileURLWithPath: path)
+        // Create new work item for this launch
+        var workItem: DispatchWorkItem!
+        workItem = DispatchWorkItem {
+            guard !workItem.isCancelled else { return }
+            
+            // Use NSWorkspace for much faster app launching (no AppleScript overhead)
+            let workspace = NSWorkspace.shared
+            
+            // First, check if the app is already running - this is instant
+            let runningApps = workspace.runningApplications
+            if let runningApp = runningApps.first(where: { $0.localizedName == appName }) {
+                // App is already running, just activate it (very fast)
+                runningApp.activate()
+                return
+            }
+            
+            // App is not running, find and launch it
+            // Try common locations first (fastest path - no searching needed)
+            let commonPaths = [
+                "/Applications/\(appName).app",
+                "/System/Applications/\(appName).app",
+                "/System/Applications/Utilities/\(appName).app"
+            ]
+            
+            for path in commonPaths {
+                if FileManager.default.fileExists(atPath: path) {
+                    let url = URL(fileURLWithPath: path)
+                    let config = NSWorkspace.OpenConfiguration()
+                    config.activates = true
+                    // Fire and forget - don't wait for completion (faster)
+                    workspace.openApplication(at: url, configuration: config, completionHandler: nil)
+                    return
+                }
+            }
+            
+            // Fallback: try to find app by bundle identifier
+            if let appURL = workspace.urlForApplication(withBundleIdentifier: appName) {
                 let config = NSWorkspace.OpenConfiguration()
                 config.activates = true
-                // Fire and forget - don't wait for completion (faster)
-                workspace.openApplication(at: url, configuration: config, completionHandler: nil)
-                return
+                workspace.openApplication(at: appURL, configuration: config, completionHandler: nil)
             }
         }
         
-        // Fallback: try to find app by bundle identifier
-        if let appURL = workspace.urlForApplication(withBundleIdentifier: appName) {
-            let config = NSWorkspace.OpenConfiguration()
-            config.activates = true
-            workspace.openApplication(at: appURL, configuration: config, completionHandler: nil)
+        // Store the work item and execute it
+        pendingLaunchWork = workItem
+        
+        // Execute with a small delay to allow cancellation of rapid presses
+        // This ensures only the last press in a rapid sequence executes
+        launchQueue.asyncAfter(deadline: .now() + 0.05) {
+            if !workItem.isCancelled {
+                workItem.perform()
+            }
         }
     }
     
