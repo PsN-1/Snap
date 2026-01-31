@@ -24,8 +24,16 @@ if [ $? -eq 0 ]; then
     echo "✅ Build successful! Executable created: ./snap"
     echo "🚀 Launching Snap in background..."
     nohup ./snap > /dev/null 2>&1 &
+    pid=$!
     disown
-    echo "✅ Snap is now running in the background (PID: $!)"
+    sleep 0.2
+    if kill -0 "$pid" 2>/dev/null; then
+        rm -f ./snap
+        echo "🧹 Removed ./snap from disk after launch"
+    else
+        echo "⚠️  Snap exited immediately; keeping ./snap for debugging"
+    fi
+    echo "✅ Snap is now running in the background (PID: $pid)"
     echo "   You can continue using this terminal."
 else
     echo "❌ Build failed!"
