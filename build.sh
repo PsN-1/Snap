@@ -65,13 +65,69 @@ MODIFIER=$(choose_modifier)
 echo "✅ Selected modifier: $MODIFIER"
 echo ""
 
+# Function to ask about Finder handling
+choose_finder() {
+    # Check if we're in an interactive terminal
+    if [ ! -t 0 ]; then
+        # Not interactive, default to ignore
+        echo "ignore"
+        return
+    fi
+    
+    echo "" >&2
+    echo "Finder handling:" >&2
+    echo "  By default, Finder is ignored in the dock mapping." >&2
+    echo "  You can instead assign it to a specific key (1-0)." >&2
+    echo "" >&2
+    
+    while true; do
+        echo -n "Ignore Finder in dock mapping? (Y/n): " >&2
+        read answer
+        answer=${answer:-Y}
+        answer=$(echo "$answer" | tr '[:upper:]' '[:lower:]')
+        
+        if [ "$answer" = "n" ] || [ "$answer" = "no" ]; then
+            # Ask which key
+            while true; do
+                echo -n "Which key (1-0) should launch Finder? " >&2
+                read key
+                key=$(echo "$key" | tr '[:upper:]' '[:lower:]')
+                
+                if [ "$key" = "0" ]; then
+                    echo "10"
+                    return
+                elif [ "$key" -ge 1 ] && [ "$key" -le 9 ] 2>/dev/null; then
+                    echo "$key"
+                    return
+                else
+                    echo "Invalid choice. Please enter 1-9 or 0." >&2
+                fi
+            done
+        elif [ "$answer" = "y" ] || [ "$answer" = "yes" ] || [ -z "$answer" ]; then
+            echo "ignore"
+            return
+        else
+            echo "Invalid choice. Please enter Y or n." >&2
+        fi
+    done
+}
+
+# Prompt user about Finder handling
+FINDER_CONFIG=$(choose_finder)
+if [ "$FINDER_CONFIG" = "ignore" ]; then
+    echo "✅ Finder will be ignored"
+else
+    echo "✅ Finder will be mapped to key: $FINDER_CONFIG"
+fi
+echo ""
+
 echo "🔨 Building Snap..."
 swiftc -o snap Snap.swift -framework Cocoa -framework Carbon
 
 if [ $? -eq 0 ]; then
     echo "✅ Build successful! Executable created: ./snap"
-    echo "🚀 Launching Snap in background with modifier: $MODIFIER..."
-    nohup ./snap "$MODIFIER" > /dev/null 2>&1 &
+    echo "🚀 Launching Snap in background..."
+    nohup ./snap "$MODIFIER" "$FINDER_CONFIG" > /dev/null 2>&1 &
     pid=$!
     disown
     sleep 0.2

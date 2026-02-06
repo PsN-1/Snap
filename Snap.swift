@@ -9,6 +9,8 @@ class SnapApp: NSObject {
     private var hotkeyCount = 0
     private var modifierKey: Int = optionKey
     private var modifierName: String = "Option"
+    private var ignoreFinder: Bool = true
+    private var finderPosition: Int? = nil
     
     // Pre-computed app URLs and bundle IDs for maximum speed
     private var appURLs: [Int: URL] = [:]
@@ -25,7 +27,7 @@ class SnapApp: NSObject {
     // Dedicated high-priority queue for launches
     private let launchQueue = DispatchQueue(label: "com.snap.launch", qos: .userInteractive, attributes: [])
     
-    init(modifier: String = "option") {
+    init(modifier: String = "option", ignoreFinder: Bool = true, finderPosition: Int? = nil) {
         super.init()
         switch modifier.lowercased() {
         case "control", "ctrl":
@@ -41,6 +43,8 @@ class SnapApp: NSObject {
             modifierKey = optionKey
             modifierName = "Option"
         }
+        self.ignoreFinder = ignoreFinder
+        self.finderPosition = finderPosition
         setupHotkeyHandler()
     }
     
@@ -155,9 +159,6 @@ class SnapApp: NSObject {
             
             let apps = output.components(separatedBy: ", ").map { $0.trimmingCharacters(in: CharacterSet(charactersIn: "\"")) }
             
-            // Filter out Finder - it can't be moved and we skip it
-            let filteredApps = apps.filter { $0 != "Finder" }
-            
             appPositions.removeAll()
             appURLs.removeAll()
             appBundleIDs.removeAll()
@@ -166,9 +167,27 @@ class SnapApp: NSObject {
             let runningApps = workspace.runningApplications
             
             print("\n📌 Current dock mapping:")
-            for (index, app) in filteredApps.enumerated() {
-                if index >= 10 { break }
-                let position = index + 1
+            
+            // Determine if Finder should be handled specially
+            let reservedFinderPosition = ignoreFinder ? nil : finderPosition
+            var nextPosition = 1
+            
+            // First, map non-Finder apps, reserving a slot for Finder if needed
+            for app in apps {
+                if nextPosition > 10 { break }
+                
+                if app == "Finder" {
+                    // We'll handle Finder after we've placed other apps
+                    continue
+                }
+                
+                if let reserved = reservedFinderPosition, nextPosition == reserved {
+                    // Skip this slot to keep it free for Finder later
+                    nextPosition += 1
+                    if nextPosition > 10 { break }
+                }
+                
+                let position = nextPosition
                 appPositions[position] = app
                 
                 // Pre-compute app URL for maximum speed
@@ -197,7 +216,46 @@ class SnapApp: NSObject {
                 
                 let displayKey = position == 10 ? "0" : "\(position)"
                 print("  \(status) \(modifierName)+\(displayKey) → \(app)")
+                
+                nextPosition += 1
             }
+            
+            // Optionally insert Finder at the user-selected key
+            if let reserved = reservedFinderPosition,
+               reserved >= 1, reserved <= 10,
+               apps.contains("Finder") {
+                
+                let position = reserved
+                let app = "Finder"
+                appPositions[position] = app
+                
+                // Common locations for Finder
+                let finderPaths = [
+                    "/System/Library/CoreServices/Finder.app",
+                    "/System/Applications/Finder.app",
+                    "/Applications/Finder.app"
+                ]
+                
+                var foundURL = false
+                for path in finderPaths {
+                    if FileManager.default.fileExists(atPath: path) {
+                        appURLs[position] = URL(fileURLWithPath: path)
+                        foundURL = true
+                        break
+                    }
+                }
+                
+                var status = foundURL ? "📦" : "⚠️"
+                if let runningApp = runningApps.first(where: { $0.localizedName == app }) {
+                    appBundleIDs[position] = runningApp.bundleIdentifier
+                    runningAppRefs[position] = runningApp
+                    status = "✅"
+                }
+                
+                let displayKey = position == 10 ? "0" : "\(position)"
+                print("  \(status) \(modifierName)+\(displayKey) → \(app)")
+            }
+            
             print()
             
         } catch {
@@ -355,7 +413,22 @@ extension FourCharCode {
 // Main entry point
 let args = CommandLine.arguments
 let modifier = args.count > 1 ? args[1] : "option"
-let app = SnapApp(modifier: modifier)
+
+// Parse Finder configuration from command-line arguments
+var ignoreFinder = true
+var finderPosition: Int? = nil
+
+if args.count > 2 {
+    let finderArg = args[2]
+    if finderArg.lowercased() == "ignore" {
+        ignoreFinder = true
+    } else if let pos = Int(finderArg), (1...10).contains(pos) {
+        ignoreFinder = false
+        finderPosition = pos
+    }
+}
+
+let app = SnapApp(modifier: modifier, ignoreFinder: ignoreFinder, finderPosition: finderPosition)
 app.run()
 
 
