@@ -2,7 +2,7 @@ import Cocoa
 import Carbon
 
 class SnapApp: NSObject {
-    private var hotkeyRefs: [EventHotKeyRef?] = Array(repeating: nil, count: 9)
+    private var hotkeyRefs: [EventHotKeyRef?] = Array(repeating: nil, count: 10)
     private var hotkeyIDs: [EventHotKeyID] = []
     private var appPositions: [Int: String] = [:]
     private var hotkeyCallbacks: [Int: () -> Void] = [:]
@@ -71,7 +71,8 @@ class SnapApp: NSObject {
         guard err == noErr else { return err }
         
         let position = Int(hotkeyID.id)
-        print("🔥 Hotkey pressed: \(modifierName)+\(position)")
+        let displayKey = position == 10 ? "0" : "\(position)"
+        print("🔥 Hotkey pressed: \(modifierName)+\(displayKey)")
         hotkeyCallbacks[position]?()
         
         return noErr
@@ -79,7 +80,7 @@ class SnapApp: NSObject {
     
     @inline(__always)
     func registerHotkey(keyCode: UInt32, modifiers: UInt32, position: Int) -> Bool {
-        guard hotkeyCount < 9 else { return false }
+        guard hotkeyCount < 10 else { return false }
         
         var hotkeyID = EventHotKeyID()
         hotkeyID.signature = FourCharCode(fromString: "snap")
@@ -166,7 +167,7 @@ class SnapApp: NSObject {
             
             print("\n📌 Current dock mapping:")
             for (index, app) in filteredApps.enumerated() {
-                if index >= 9 { break }
+                if index >= 10 { break }
                 let position = index + 1
                 appPositions[position] = app
                 
@@ -194,7 +195,8 @@ class SnapApp: NSObject {
                     status = "✅"
                 }
                 
-                print("  \(status) \(modifierName)+\(position) → \(app)")
+                let displayKey = position == 10 ? "0" : "\(position)"
+                print("  \(status) \(modifierName)+\(displayKey) → \(app)")
             }
             print()
             
@@ -259,16 +261,16 @@ class SnapApp: NSObject {
     }
     
     func setupHotkeys() {
-        // Key codes: 18=1, 19=2, 20=3, 21=4, 23=5, 22=6, 26=7, 28=8, 25=9
+        // Key codes: 18=1, 19=2, 20=3, 21=4, 23=5, 22=6, 26=7, 28=8, 25=9, 29=0
         let keyCodes: [Int: UInt32] = [
             1: 18, 2: 19, 3: 20, 4: 21, 5: 23,
-            6: 22, 7: 26, 8: 28, 9: 25
+            6: 22, 7: 26, 8: 28, 9: 25, 10: 29
         ]
         
         print("Registering hotkeys...")
         var successCount = 0
         
-        for i in 1...9 {
+        for i in 1...10 {
             let position = i
             hotkeyCallbacks[position] = { [weak self] in
                 self?.launchAppAtPosition(position)
@@ -282,7 +284,7 @@ class SnapApp: NSObject {
             }
         }
         
-        print("✓ Registered \(successCount)/9 hotkeys\n")
+        print("✓ Registered \(successCount)/10 hotkeys\n")
         
         if successCount == 0 {
             print("⚠️  Warning: No hotkeys were registered successfully!")
@@ -308,14 +310,14 @@ class SnapApp: NSObject {
         }
         
         print("🚀 Snap - Dock App Launcher")
-        print("Press \(modifierName)+1-9 to launch apps from your dock")
+        print("Press \(modifierName)+1-0 to launch apps from your dock")
         print("Press Ctrl+C to quit")
         print()
         
         refreshDockApps()
         setupHotkeys()
         
-        print("✅ App is running. Press \(modifierName)+1-9 to launch apps, or Ctrl+C to quit.")
+        print("✅ App is running. Press \(modifierName)+1-0 to launch apps, or Ctrl+C to quit.")
         print("   (Note: If running in Terminal, Control keys may be intercepted by Terminal)")
         
         // Process Carbon events in the run loop - optimized frequency (50ms instead of 100ms)
