@@ -7,6 +7,8 @@ class SnapApp: NSObject {
     private var appPositions: [Int: String] = [:]
     private var hotkeyCallbacks: [Int: () -> Void] = [:]
     private var hotkeyCount = 0
+    private var modifierKey: Int = optionKey
+    private var modifierName: String = "Option"
     
     // Pre-computed app URLs and bundle IDs for maximum speed
     private var appURLs: [Int: URL] = [:]
@@ -23,8 +25,22 @@ class SnapApp: NSObject {
     // Dedicated high-priority queue for launches
     private let launchQueue = DispatchQueue(label: "com.snap.launch", qos: .userInteractive, attributes: [])
     
-    override init() {
+    init(modifier: String = "option") {
         super.init()
+        switch modifier.lowercased() {
+        case "control", "ctrl":
+            modifierKey = controlKey
+            modifierName = "Ctrl"
+        case "command", "cmd":
+            modifierKey = cmdKey
+            modifierName = "Cmd"
+        case "option", "opt", "alt":
+            modifierKey = optionKey
+            modifierName = "Option"
+        default:
+            modifierKey = optionKey
+            modifierName = "Option"
+        }
         setupHotkeyHandler()
     }
     
@@ -55,7 +71,7 @@ class SnapApp: NSObject {
         guard err == noErr else { return err }
         
         let position = Int(hotkeyID.id)
-        print("🔥 Hotkey pressed: Ctrl+\(position)")
+        print("🔥 Hotkey pressed: \(modifierName)+\(position)")
         hotkeyCallbacks[position]?()
         
         return noErr
@@ -178,7 +194,7 @@ class SnapApp: NSObject {
                     status = "✅"
                 }
                 
-                print("  \(status) Ctrl+\(position) → \(app)")
+                print("  \(status) \(modifierName)+\(position) → \(app)")
             }
             print()
             
@@ -259,7 +275,7 @@ class SnapApp: NSObject {
             }
             
             guard let keyCode = keyCodes[position] else { continue }
-            let modifiers = UInt32(controlKey) // Control key modifier
+            let modifiers = UInt32(modifierKey)
             
             if registerHotkey(keyCode: keyCode, modifiers: modifiers, position: position) {
                 successCount += 1
@@ -292,14 +308,14 @@ class SnapApp: NSObject {
         }
         
         print("🚀 Snap - Dock App Launcher")
-        print("Press Ctrl+1-9 to launch apps from your dock")
+        print("Press \(modifierName)+1-9 to launch apps from your dock")
         print("Press Ctrl+C to quit")
         print()
         
         refreshDockApps()
         setupHotkeys()
         
-        print("✅ App is running. Press Ctrl+1-9 to launch apps, or Ctrl+C to quit.")
+        print("✅ App is running. Press \(modifierName)+1-9 to launch apps, or Ctrl+C to quit.")
         print("   (Note: If running in Terminal, Control keys may be intercepted by Terminal)")
         
         // Process Carbon events in the run loop - optimized frequency (50ms instead of 100ms)
@@ -335,7 +351,9 @@ extension FourCharCode {
 }
 
 // Main entry point
-let app = SnapApp()
+let args = CommandLine.arguments
+let modifier = args.count > 1 ? args[1] : "option"
+let app = SnapApp(modifier: modifier)
 app.run()
 
 
