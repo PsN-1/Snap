@@ -24,9 +24,9 @@ choose_modifier() {
     echo "" >&2
     
     while true; do
-        echo -n "Enter choice [1-3] (default: 3): " >&2
+        echo -n "Enter choice [1-3] (default: 1): " >&2
         read choice
-        choice=${choice:-3}
+        choice=${choice:-1}
         
         case "$choice" in
             1)
@@ -89,8 +89,9 @@ choose_finder() {
         if [ "$answer" = "n" ] || [ "$answer" = "no" ]; then
             # Ask which key
             while true; do
-                echo -n "Which key (1-0) should launch Finder? " >&2
+                echo -n "Which key (1-0) should launch Finder? (default: 1): " >&2
                 read key
+                key=${key:-1}
                 key=$(echo "$key" | tr '[:upper:]' '[:lower:]')
                 
                 if [ "$key" = "0" ]; then

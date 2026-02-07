@@ -7,8 +7,8 @@ class SnapApp: NSObject {
     private var appPositions: [Int: String] = [:]
     private var hotkeyCallbacks: [Int: () -> Void] = [:]
     private var hotkeyCount = 0
-    private var modifierKey: Int = optionKey
-    private var modifierName: String = "Option"
+    private var modifierKey: Int = controlKey
+    private var modifierName: String = "Ctrl"
     private var ignoreFinder: Bool = true
     private var finderPosition: Int? = nil
     
@@ -27,7 +27,7 @@ class SnapApp: NSObject {
     // Dedicated high-priority queue for launches
     private let launchQueue = DispatchQueue(label: "com.snap.launch", qos: .userInteractive, attributes: [])
     
-    init(modifier: String = "option", ignoreFinder: Bool = true, finderPosition: Int? = nil) {
+    init(modifier: String = "control", ignoreFinder: Bool = true, finderPosition: Int? = nil) {
         super.init()
         switch modifier.lowercased() {
         case "control", "ctrl":
@@ -40,8 +40,8 @@ class SnapApp: NSObject {
             modifierKey = optionKey
             modifierName = "Option"
         default:
-            modifierKey = optionKey
-            modifierName = "Option"
+            modifierKey = controlKey
+            modifierName = "Ctrl"
         }
         self.ignoreFinder = ignoreFinder
         self.finderPosition = finderPosition
@@ -412,7 +412,7 @@ extension FourCharCode {
 
 // Main entry point
 let args = CommandLine.arguments
-let modifier = args.count > 1 ? args[1] : "option"
+let modifier = args.count > 1 ? args[1] : "control"
 
 // Parse Finder configuration from command-line arguments
 var ignoreFinder = true
