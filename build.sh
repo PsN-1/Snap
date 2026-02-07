@@ -122,13 +122,57 @@ else
 fi
 echo ""
 
+# Function to ask about combo shortcut (one key launches multiple apps)
+choose_combo() {
+    if [ ! -t 0 ]; then
+        echo ""
+        return
+    fi
+    
+    echo "" >&2
+    echo "Combo shortcut (optional):" >&2
+    echo "  One key can launch multiple apps at once." >&2
+    echo "  Use a letter (e.g. E) or a number (1-0). Numbers take that dock slot and shift others down." >&2
+    echo "  Example: 5:Notes,Reminders → Ctrl+5 launches combo, dock app at 5 moves to Ctrl+6" >&2
+    echo "" >&2
+    
+    echo -n "Add combo shortcut? (y/N): " >&2
+    read answer
+    answer=${answer:-N}
+    answer=$(echo "$answer" | tr '[:upper:]' '[:lower:]')
+    
+    if [ "$answer" = "y" ] || [ "$answer" = "yes" ]; then
+        echo -n "Key (letter A-Z or number 1-0): " >&2
+        read key
+        key=$(echo "$key" | head -c 1)
+        echo -n "Apps to launch, comma-separated (e.g. Notes,Reminders): " >&2
+        read apps
+        if [ -n "$key" ] && [ -n "$apps" ]; then
+            echo "${key}:${apps}"
+        else
+            echo ""
+        fi
+    else
+        echo ""
+    fi
+}
+
+# Prompt user about combo shortcut
+COMBO_CONFIG=$(choose_combo)
+if [ -n "$COMBO_CONFIG" ]; then
+    echo "✅ Combo shortcut: $COMBO_CONFIG"
+else
+    echo "✅ No combo shortcut"
+fi
+echo ""
+
 echo "🔨 Building Snap..."
 swiftc -o snap Snap.swift -framework Cocoa -framework Carbon
 
 if [ $? -eq 0 ]; then
     echo "✅ Build successful! Executable created: ./snap"
     echo "🚀 Launching Snap in background..."
-    nohup ./snap "$MODIFIER" "$FINDER_CONFIG" > /dev/null 2>&1 &
+    nohup ./snap "$MODIFIER" "$FINDER_CONFIG" "$COMBO_CONFIG" > /dev/null 2>&1 &
     pid=$!
     disown
     sleep 0.2

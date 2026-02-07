@@ -2,7 +2,7 @@ import Cocoa
 import Carbon
 
 class SnapApp: NSObject {
-    private var hotkeyRefs: [EventHotKeyRef?] = Array(repeating: nil, count: 10)
+    private var hotkeyRefs: [EventHotKeyRef?] = Array(repeating: nil, count: 11)
     private var hotkeyIDs: [EventHotKeyID] = []
     private var appPositions: [Int: String] = [:]
     private var hotkeyCallbacks: [Int: () -> Void] = [:]
@@ -11,6 +11,12 @@ class SnapApp: NSObject {
     private var modifierName: String = "Ctrl"
     private var ignoreFinder: Bool = true
     private var finderPosition: Int? = nil
+    
+    // Combo shortcut: one key launches multiple apps (e.g. Control+E or Control+5 → Notes, Reminders)
+    // When combo uses a number (1-0), it takes that position and dock apps shift down
+    private var comboHotkeyKey: String? = nil
+    private var comboPosition: Int? = nil  // When combo uses a number, this is 1-10
+    private var comboApps: [String] = []
     
     // Pre-computed app URLs and bundle IDs for maximum speed
     private var appURLs: [Int: URL] = [:]
@@ -27,7 +33,7 @@ class SnapApp: NSObject {
     // Dedicated high-priority queue for launches
     private let launchQueue = DispatchQueue(label: "com.snap.launch", qos: .userInteractive, attributes: [])
     
-    init(modifier: String = "control", ignoreFinder: Bool = true, finderPosition: Int? = nil) {
+    init(modifier: String = "control", ignoreFinder: Bool = true, finderPosition: Int? = nil, comboShortcut: String? = nil) {
         super.init()
         switch modifier.lowercased() {
         case "control", "ctrl":
@@ -45,6 +51,22 @@ class SnapApp: NSObject {
         }
         self.ignoreFinder = ignoreFinder
         self.finderPosition = finderPosition
+        if let combo = comboShortcut, !combo.isEmpty {
+            let parts = combo.split(separator: ":", maxSplits: 1)
+            if parts.count == 2 {
+                let key = String(parts[0]).trimmingCharacters(in: .whitespaces)
+                comboApps = String(parts[1]).split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) }
+                if key.count == 1 && key.first?.isNumber == true {
+                    // Number key: combo takes that position, dock apps shift down
+                    comboHotkeyKey = key == "0" ? "0" : key
+                    comboPosition = key == "0" ? 10 : Int(key)
+                } else {
+                    // Letter key: separate hotkey, no position shift
+                    comboHotkeyKey = key.uppercased()
+                    comboPosition = nil
+                }
+            }
+        }
         setupHotkeyHandler()
     }
     
@@ -74,27 +96,38 @@ class SnapApp: NSObject {
         
         guard err == noErr else { return err }
         
-        let position = Int(hotkeyID.id)
-        let displayKey = position == 10 ? "0" : "\(position)"
-        print("🔥 Hotkey pressed: \(modifierName)+\(displayKey)")
-        hotkeyCallbacks[position]?()
+        let id = Int(hotkeyID.id)
+        if id == 99 {
+            // Combo shortcut
+            print("🔥 Hotkey pressed: \(modifierName)+\(comboHotkeyKey ?? "?")")
+            launchApps(comboApps)
+        } else {
+            let displayKey = id == 10 ? "0" : "\(id)"
+            print("🔥 Hotkey pressed: \(modifierName)+\(displayKey)")
+            hotkeyCallbacks[id]?()
+        }
         
         return noErr
     }
     
     @inline(__always)
     func registerHotkey(keyCode: UInt32, modifiers: UInt32, position: Int) -> Bool {
-        guard hotkeyCount < 10 else { return false }
+        registerHotkey(keyCode: keyCode, modifiers: modifiers, hotkeyId: position)
+    }
+    
+    @inline(__always)
+    func registerHotkey(keyCode: UInt32, modifiers: UInt32, hotkeyId: Int) -> Bool {
+        guard hotkeyCount < 11 else { return false }
         
         var hotkeyID = EventHotKeyID()
         hotkeyID.signature = FourCharCode(fromString: "snap")
-        hotkeyID.id = UInt32(position)
+        hotkeyID.id = UInt32(hotkeyId)
         
         var hotkeyRef: EventHotKeyRef?
         let status = RegisterEventHotKey(keyCode, modifiers, hotkeyID, GetApplicationEventTarget(), 0, &hotkeyRef)
         
         guard status == noErr, let ref = hotkeyRef else {
-            print("Failed to register hotkey for position \(position), error: \(status)")
+            print("Failed to register hotkey for id \(hotkeyId), error: \(status)")
             return false
         }
         
@@ -168,24 +201,22 @@ class SnapApp: NSObject {
             
             print("\n📌 Current dock mapping:")
             
-            // Determine if Finder should be handled specially
-            let reservedFinderPosition = ignoreFinder ? nil : finderPosition
+            // Reserved positions: combo (takes a slot) and Finder (if not ignored)
+            let reservedPositions = [comboPosition, ignoreFinder ? nil : finderPosition].compactMap { $0 }
             var nextPosition = 1
             
-            // First, map non-Finder apps, reserving a slot for Finder if needed
+            // Map non-Finder dock apps, skipping reserved slots (combo position, Finder position)
             for app in apps {
                 if nextPosition > 10 { break }
                 
                 if app == "Finder" {
-                    // We'll handle Finder after we've placed other apps
                     continue
                 }
                 
-                if let reserved = reservedFinderPosition, nextPosition == reserved {
-                    // Skip this slot to keep it free for Finder later
+                while nextPosition <= 10 && reservedPositions.contains(nextPosition) {
                     nextPosition += 1
-                    if nextPosition > 10 { break }
                 }
+                if nextPosition > 10 { break }
                 
                 let position = nextPosition
                 appPositions[position] = app
@@ -220,8 +251,14 @@ class SnapApp: NSObject {
                 nextPosition += 1
             }
             
+            // Show combo at its position if it uses a number
+            if let pos = comboPosition, !comboApps.isEmpty {
+                let displayKey = pos == 10 ? "0" : "\(pos)"
+                print("  🔗 \(modifierName)+\(displayKey) → \(comboApps.joined(separator: ", ")) (combo)")
+            }
+            
             // Optionally insert Finder at the user-selected key
-            if let reserved = reservedFinderPosition,
+            if !ignoreFinder, let reserved = finderPosition,
                reserved >= 1, reserved <= 10,
                apps.contains("Finder") {
                 
@@ -318,6 +355,49 @@ class SnapApp: NSObject {
         print("❌ Could not launch \(appName) - not found")
     }
     
+    func launchApps(_ appNames: [String]) {
+        for (index, appName) in appNames.enumerated() {
+            let delay = 0.05 * Double(index)  // Stagger by 200ms each to avoid activation race
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
+                self?.launchApp(named: appName)
+            }
+        }
+    }
+    
+    private func launchApp(named appName: String) {
+        let runningApps = workspace.runningApplications
+        
+        // Try to activate if already running
+        if let runningApp = runningApps.first(where: { $0.localizedName == appName }) {
+            if !runningApp.isTerminated {
+                print("✅ Activating: \(appName)")
+                runningApp.activate()
+                return
+            }
+        }
+        
+        // Try to launch by path
+        let commonPaths = [
+            "/Applications/\(appName).app",
+            "/System/Applications/\(appName).app",
+            "/System/Applications/Utilities/\(appName).app"
+        ]
+        
+        for path in commonPaths {
+            if FileManager.default.fileExists(atPath: path) {
+                print("🚀 Launching: \(appName)")
+                let url = URL(fileURLWithPath: path)
+                let config = NSWorkspace.OpenConfiguration()
+                config.activates = true
+                config.createsNewApplicationInstance = false
+                workspace.openApplication(at: url, configuration: config, completionHandler: nil)
+                return
+            }
+        }
+        
+        print("❌ Could not launch \(appName) - not found")
+    }
+    
     func setupHotkeys() {
         // Key codes: 18=1, 19=2, 20=3, 21=4, 23=5, 22=6, 26=7, 28=8, 25=9, 29=0
         let keyCodes: [Int: UInt32] = [
@@ -330,19 +410,49 @@ class SnapApp: NSObject {
         
         for i in 1...10 {
             let position = i
-            hotkeyCallbacks[position] = { [weak self] in
-                self?.launchAppAtPosition(position)
-            }
-            
-            guard let keyCode = keyCodes[position] else { continue }
             let modifiers = UInt32(modifierKey)
             
-            if registerHotkey(keyCode: keyCode, modifiers: modifiers, position: position) {
-                successCount += 1
+            if position == comboPosition {
+                // This position is for combo - register combo hotkey instead of dock
+                hotkeyCallbacks[99] = { [weak self] in
+                    self?.launchApps(self?.comboApps ?? [])
+                }
+                if let keyCode = keyCodes[position],
+                   registerHotkey(keyCode: keyCode, modifiers: modifiers, hotkeyId: 99) {
+                    successCount += 1
+                    let displayKey = position == 10 ? "0" : "\(position)"
+                    print("✓ Combo shortcut: \(modifierName)+\(displayKey) → \(comboApps.joined(separator: ", "))")
+                }
+            } else {
+                hotkeyCallbacks[position] = { [weak self] in
+                    self?.launchAppAtPosition(position)
+                }
+                if let keyCode = keyCodes[position],
+                   registerHotkey(keyCode: keyCode, modifiers: modifiers, position: position) {
+                    successCount += 1
+                }
             }
         }
         
-        print("✓ Registered \(successCount)/10 hotkeys\n")
+        // Register letter combo shortcut if configured (e.g. Control+E → Notes, Reminders)
+        if let keyName = comboHotkeyKey, comboPosition == nil, !comboApps.isEmpty {
+            let letterKeyCodes: [String: UInt32] = [
+                "A": 0, "B": 11, "C": 8, "D": 2, "E": 14, "F": 3, "G": 5, "H": 4,
+                "I": 34, "J": 38, "K": 40, "L": 37, "M": 46, "N": 45, "O": 31, "P": 35,
+                "Q": 12, "R": 15, "S": 1, "T": 17, "U": 32, "V": 9, "W": 13, "X": 7, "Y": 16, "Z": 6
+            ]
+            if let keyCode = letterKeyCodes[keyName.uppercased()] {
+                hotkeyCallbacks[99] = { [weak self] in
+                    self?.launchApps(self?.comboApps ?? [])
+                }
+                if registerHotkey(keyCode: keyCode, modifiers: UInt32(modifierKey), hotkeyId: 99) {
+                    successCount += 1
+                    print("✓ Combo shortcut: \(modifierName)+\(keyName) → \(comboApps.joined(separator: ", "))")
+                }
+            }
+        }
+        
+        print("✓ Registered \(successCount) hotkeys\n")
         
         if successCount == 0 {
             print("⚠️  Warning: No hotkeys were registered successfully!")
@@ -369,13 +479,20 @@ class SnapApp: NSObject {
         
         print("🚀 Snap - Dock App Launcher")
         print("Press \(modifierName)+1-0 to launch apps from your dock")
+        if let key = comboHotkeyKey, !comboApps.isEmpty {
+            print("Press \(modifierName)+\(key) to launch: \(comboApps.joined(separator: ", "))")
+        }
         print("Press Ctrl+C to quit")
         print()
         
         refreshDockApps()
         setupHotkeys()
         
-        print("✅ App is running. Press \(modifierName)+1-0 to launch apps, or Ctrl+C to quit.")
+        var msg = "✅ App is running. Press \(modifierName)+1-0 to launch apps"
+        if let key = comboHotkeyKey, !comboApps.isEmpty {
+            msg += ", \(modifierName)+\(key) for combo"
+        }
+        print("\(msg), or Ctrl+C to quit.")
         print("   (Note: If running in Terminal, Control keys may be intercepted by Terminal)")
         
         // Process Carbon events in the run loop - optimized frequency (50ms instead of 100ms)
@@ -428,7 +545,12 @@ if args.count > 2 {
     }
 }
 
-let app = SnapApp(modifier: modifier, ignoreFinder: ignoreFinder, finderPosition: finderPosition)
+var comboShortcut: String? = nil
+if args.count > 3 {
+    comboShortcut = args[3]
+}
+
+let app = SnapApp(modifier: modifier, ignoreFinder: ignoreFinder, finderPosition: finderPosition, comboShortcut: comboShortcut)
 app.run()
 
 
